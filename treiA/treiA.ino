@@ -4,9 +4,6 @@
 * Changes:
 * > version 1.3:
 *     - make change value work in selection menu (write setCurrentSettupDataValue method)
-*     - create value-description pairs for variable values that have meaning 
-*       (ex. for aquariumLightsStatus make pairs: AQUARIUM_LIGHT_STATUS_OFF=0-"OFF";AQUARIUM_LIGHT_STATUS_ON=1-"ON")
-*     - make value limits (ex. for setting time->minutes limits are: 0 and 59)
 * > version 1.2:
 *     - fixes
 *     - cancel, previous value, next value, load selected value in selection section from menu
@@ -403,6 +400,47 @@ int getCurrentSettupDataValue() {
 }
 
 void setCurrentSettupDataValue(int value) {
+  switch (settupMode) {
+    case SETTUP_MODE_DATE_DAY      : writeDateDay(value);break;
+    case SETTUP_MODE_DATE_MONTH    : writeDateMonth(value);break;
+    case SETTUP_MODE_DATE_YEAR     : writeDateYear(value);break;
+    case SETTUP_MODE_TIME_HOUR     : writeTimeHour(value);break;
+    case SETTUP_MODE_TIME_MINUTE   : writeTimeMinute(value);break;
+    case SETTUP_MODE_TIME_MODE     : timeMode = value;break;
+    case SETTUP_MODE_AQL_CONTROL   : aquariumLightsStatus = value;break;
+    case SETTUP_MODE_AQL_MODE      : aquariumLightsMode = value;break;
+    case SETTUP_MODE_AQL_ON1_HOUR  : aquariumLightsOn1TimeHour = value;break;
+    case SETTUP_MODE_AQL_ON1_MIN   : aquariumLightsOn1TimeMinute = value;break;
+    case SETTUP_MODE_AQL_OFF1_HOUR : aquariumLightsOff1TimeHour = value;break;
+    case SETTUP_MODE_AQL_OFF1_MIN  : aquariumLightsOff1TimeMinute = value;break;
+    case SETTUP_MODE_AQL_ON2_HOUR  : aquariumLightsOn2TimeHour = value;break;
+    case SETTUP_MODE_AQL_ON2_MIN   : aquariumLightsOn2TimeMinute = value;break;
+    case SETTUP_MODE_AQL_OFF2_HOUR : aquariumLightsOff2TimeHour = value;break;
+    case SETTUP_MODE_AQL_OFF2_MIN  : aquariumLightsOff2TimeMinute = value;break;
+    case SETTUP_MODE_AQV_CONTROL   : aquariumVentStatus = value;break;
+    case SETTUP_MODE_AQV_MODE      : aquariumVentMode = value;break;
+    case SETTUP_MODE_SPEAKER_MODE  : speakerMode = value;break;
+    case SETTUP_MODE_ALARMS_MODE   : alarmsMode = value;break;
+    case SETTUP_MODE_LCD_CONTROL   : lcdStatus = value;break;
+    case SETTUP_MODE_LCD_MODE      : lcdMode = value;break;
+    case SETTUP_MODE_LCD_TIMEOUT   : lcdTimeout = value;break;
+    case SETTUP_MODE_WT_LIM_CLOW   : waterTempCriticalLowLimit = value;break;
+    case SETTUP_MODE_WT_ACT_CLOW   : 0 = value;break;
+    case SETTUP_MODE_WT_LIM_LOW    : waterTempLowLimit = value;break;
+    case SETTUP_MODE_WT_ACT_LOW    : 0 = value;break;
+    case SETTUP_MODE_WT_LIM_HIGH   : waterTempHighLimit = value;break;
+    case SETTUP_MODE_WT_ACT_HIGH   : 0 = value;break;
+    case SETTUP_MODE_WT_LIM_CHIGH  : waterTempCriticalHighLimit = value;break;
+    case SETTUP_MODE_WT_ACT_CHIGH  : 0 = value;break;
+    case SETTUP_MODE_WL_LIM_CLOW   : waterLevelCriticalLowLimit = value;break;
+    case SETTUP_MODE_WL_ACT_CLOW   : 0 = value;break;
+    case SETTUP_MODE_WL_LIM_LOW    : waterLevelLowLimit = value;break;
+    case SETTUP_MODE_WL_ACT_LOW    : 0 = value;break;
+    case SETTUP_MODE_WL_LIM_HIGH   : waterLevelHighLimit = value;break;
+    case SETTUP_MODE_WL_ACT_HIGH   : 0 = value;break;
+    case SETTUP_MODE_WL_LIM_CHIGH  : waterLevelCriticalHighLimit = value;break;
+    case SETTUP_MODE_WL_ACT_CHIGH  : 0 = value;break;
+  }
 }
 
 void loop() {
