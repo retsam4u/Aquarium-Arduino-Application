@@ -1,10 +1,15 @@
 /*
 * Aquarium Application for Arduino
-* ver. 1.2
+* ver. 1.3
 * Changes:
+* > version 1.3:
+*     - make change value work in selection menu (write setCurrentSettupDataValue method)
+*     - create value-description pairs for variable values that have meaning 
+*       (ex. for aquariumLightsStatus make pairs: AQUARIUM_LIGHT_STATUS_OFF=0-"OFF";AQUARIUM_LIGHT_STATUS_ON=1-"ON")
+*     - make value limits (ex. for setting time->minutes limits are: 0 and 59)
 * > version 1.2:
 *     - fixes
-*     - select, cancel, previous value, next value in selection section from menu
+*     - cancel, previous value, next value, load selected value in selection section from menu
 * > version 1.1:
 *     - change appconstants and application variables
 *     - change how ir commands are read
