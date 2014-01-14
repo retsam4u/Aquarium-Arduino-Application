@@ -3,7 +3,8 @@
 * ver. 1.2
 * Changes:
 * > version 1.2:
-*     - 
+*     - fixes
+*     - select, cancel, previous value, next value in selection section from menu
 * > version 1.1:
 *     - change appconstants and application variables
 *     - change how ir commands are read
