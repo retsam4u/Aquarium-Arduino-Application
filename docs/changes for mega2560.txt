@@ -1,0 +1,9 @@
+1. sda/scl pins are different on mega2560 => pins: 20 and 21
+2. ir sensor doesn't work on digital pin 2 -> setted on digital pin 30 on mega2560
+3. digital pin 2 (INTERUPT PIN int0 on Uno) connected to INT4 on Mega2560 digital pin 19
+4. MEGA pin 50 (MISO) to Arduino Ethernet Shield pin 12
+   MEGA pin 51 (MOSI) to Arduino Ethernet Shield pin 11
+   MEGA pin 52 (SCK) to Arduino Ethernet Shield pin 13
+   MEGA pin 53 (SS) to Arduino Ethernet Shield pin 10
+5. changed WiShield library for Mega
+6. 
