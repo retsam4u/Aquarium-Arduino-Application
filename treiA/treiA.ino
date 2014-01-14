@@ -1,7 +1,12 @@
 /*
 * Aquarium Application for Arduino
-* ver. 1.3
+* ver. 2.0
 * Changes:
+* > version 2.0:
+*     - MAJOR: restructure project: brake main ino file (treiA.ino) into multiple files!
+*     - create value-description pairs for variable values that have meaning 
+*       (ex. for aquariumLightsStatus make pairs: AQUARIUM_LIGHT_STATUS_OFF=0-"OFF";AQUARIUM_LIGHT_STATUS_ON=1-"ON")
+*     - make value limits (ex. for setting time->minutes limits are: 0 and 59)
 * > version 1.3:
 *     - make change value work in selection menu (write setCurrentSettupDataValue method)
 * > version 1.2:
@@ -28,7 +33,11 @@
 #include "ir_codes.h"
 #include <MenuSystem.h>
 
-#define APP_VERSION_NUMBER "1.0"
+#include <MenuController.ino>
+#include <SelectionController.ino>
+
+
+#define APP_VERSION_NUMBER "2.0"
 
 // === init LCD ===
 LiquidCrystal_I2C lcd(0x20, 2,1,0,4,5,6,7,3, POSITIVE);
@@ -209,60 +218,7 @@ const String lcdSettupInfoEN[] = {
     "temp.lim.v =", "temp.act.v =", "temp.lim.^ =", "temp.act.^ =", "temp.lim.^^=", 
     "temp.act.^^=", "lvl.lim.vv =", "lvl.act.vv =", "lvl.lim.v  =", "lvl.act.v  =", 
     "lvl.lim.^  =", "lvl.act.^  =", "lvl.lim.^^ =", "lvl.act.^^ ="};
-// === LCD Settings Menu ===
 
-// Menu
-boolean menuChanged = false;
-MenuSystem menuSystem;
-Menu mRoot("3A Settings");
-Menu m1("Date and Time");
-Menu m1_m1("Set date");
-MenuItem m1_m1_i1("day:");
-MenuItem m1_m1_i2("month:");
-MenuItem m1_m1_i3("year:");
-Menu m1_m2("Set time");
-MenuItem m1_m2_i1("hour:");
-MenuItem m1_m2_i2("minute:");
-MenuItem m1_m2_i3("mode:");
-Menu m2("Aquarium lights");
-MenuItem m2_i1("control:");
-MenuItem m2_i2("mode:");
-Menu m2_m3("Auto");
-MenuItem m2_m3_i1("on1 hour:");
-MenuItem m2_m3_i2("on1 minute:");
-MenuItem m2_m3_i3("off1 hour:");
-MenuItem m2_m3_i4("off1 minute:");
-MenuItem m2_m3_i5("on2 hour:");
-MenuItem m2_m3_i6("on2 minute:");
-MenuItem m2_m3_i7("off2 hour:");
-MenuItem m2_m3_i8("off2 minute:");
-Menu m3("Aquarium vent");
-MenuItem m3_i1("control:");
-MenuItem m3_i2("mode:");
-MenuItem i3("Speaker:");
-MenuItem i4("Alarms:");
-Menu m5("LCD");
-MenuItem m5_i1("control:");
-MenuItem m5_i2("mode:");
-MenuItem m5_i3("timeout:");
-Menu m6("Water temp");
-MenuItem m6_i1("Lim. CLow:");
-MenuItem m6_i2("Act. CLow:");
-MenuItem m6_i3("Lim. Low:");
-MenuItem m6_i4("Act. Low:");
-MenuItem m6_i5("Lim. High:");
-MenuItem m6_i6("Act. High:");
-MenuItem m6_i7("Lim. CHigh:");
-MenuItem m6_i8("Act. CHigh:");
-Menu m7("Water level");
-MenuItem m7_i1("Lim. CLow:");
-MenuItem m7_i2("Act. CLow:");
-MenuItem m7_i3("Lim. Low:");
-MenuItem m7_i4("Act. Low:");
-MenuItem m7_i5("Lim. High:");
-MenuItem m7_i6("Act. High:");
-MenuItem m7_i7("Lim. CHigh:");
-MenuItem m7_i8("Act. CHigh:");
 
 
 // === sensor data ===
@@ -289,59 +245,6 @@ void setup() {
   pinMode(PIN_SOUND, OUTPUT);
   toneManual(NOTE_C4, 200);
   delay(200);
-}
-
-void initSettupMenu() {
-  mRoot.add_menu(&m1);
-  m1.add_menu(&m1_m1);
-  m1_m1.add_item(&m1_m1_i1, &onSelect, SETTUP_MODE_DATE_DAY);
-  m1_m1.add_item(&m1_m1_i2, &onSelect, SETTUP_MODE_DATE_MONTH);
-  m1_m1.add_item(&m1_m1_i3, &onSelect, SETTUP_MODE_DATE_YEAR);
-  m1.add_menu(&m1_m2);
-  m1_m2.add_item(&m1_m2_i1, &onSelect, SETTUP_MODE_TIME_HOUR);
-  m1_m2.add_item(&m1_m2_i2, &onSelect, SETTUP_MODE_TIME_MINUTE);
-  m1_m2.add_item(&m1_m2_i3, &onSelect, SETTUP_MODE_TIME_MODE);
-  mRoot.add_menu(&m2);
-  m2.add_item(&m2_i1, &onSelect, SETTUP_MODE_AQL_CONTROL);
-  m2.add_item(&m2_i2, &onSelect, SETTUP_MODE_AQL_MODE);
-  m2.add_menu(&m2_m3);
-  m2_m3.add_item(&m2_m3_i1, &onSelect, SETTUP_MODE_AQL_ON1_HOUR);
-  m2_m3.add_item(&m2_m3_i2, &onSelect, SETTUP_MODE_AQL_ON1_MIN);
-  m2_m3.add_item(&m2_m3_i3, &onSelect, SETTUP_MODE_AQL_OFF1_HOUR);
-  m2_m3.add_item(&m2_m3_i4, &onSelect, SETTUP_MODE_AQL_OFF1_MIN);
-  m2_m3.add_item(&m2_m3_i5, &onSelect, SETTUP_MODE_AQL_ON2_HOUR);
-  m2_m3.add_item(&m2_m3_i6, &onSelect, SETTUP_MODE_AQL_ON2_MIN);
-  m2_m3.add_item(&m2_m3_i7, &onSelect, SETTUP_MODE_AQL_OFF2_HOUR);
-  m2_m3.add_item(&m2_m3_i8, &onSelect, SETTUP_MODE_AQL_OFF2_MIN);
-  mRoot.add_menu(&m3);
-  m2.add_item(&m3_i1, &onSelect, SETTUP_MODE_AQV_CONTROL);
-  m2.add_item(&m3_i2, &onSelect, SETTUP_MODE_AQV_MODE);
-  mRoot.add_item(&i3, &onSelect, SETTUP_MODE_SPEAKER_MODE);
-  mRoot.add_item(&i4, &onSelect, SETTUP_MODE_ALARMS_MODE);
-  mRoot.add_menu(&m5);
-  m5.add_item(&m5_i1, &onSelect, SETTUP_MODE_LCD_CONTROL);
-  m5.add_item(&m5_i2, &onSelect, SETTUP_MODE_LCD_MODE);
-  m5.add_item(&m5_i3, &onSelect, SETTUP_MODE_LCD_TIMEOUT);
-  mRoot.add_menu(&m6);
-  m6.add_item(&m6_i1, &onSelect, SETTUP_MODE_WT_LIM_CLOW);
-  m6.add_item(&m6_i2, &onSelect, SETTUP_MODE_WT_ACT_CLOW);
-  m6.add_item(&m6_i3, &onSelect, SETTUP_MODE_WT_LIM_LOW);
-  m6.add_item(&m6_i4, &onSelect, SETTUP_MODE_WT_ACT_LOW);
-  m6.add_item(&m6_i5, &onSelect, SETTUP_MODE_WT_LIM_HIGH);
-  m6.add_item(&m6_i6, &onSelect, SETTUP_MODE_WT_ACT_HIGH);
-  m6.add_item(&m6_i7, &onSelect, SETTUP_MODE_WT_LIM_CHIGH);
-  m6.add_item(&m6_i8, &onSelect, SETTUP_MODE_WT_ACT_CHIGH);
-  mRoot.add_menu(&m7);
-  m7.add_item(&m7_i1, &onSelect, SETTUP_MODE_WL_LIM_CLOW);
-  m7.add_item(&m7_i2, &onSelect, SETTUP_MODE_WL_ACT_CLOW);
-  m7.add_item(&m7_i3, &onSelect, SETTUP_MODE_WL_LIM_LOW);
-  m7.add_item(&m7_i4, &onSelect, SETTUP_MODE_WL_ACT_LOW);
-  m7.add_item(&m7_i5, &onSelect, SETTUP_MODE_WL_LIM_HIGH);
-  m7.add_item(&m7_i6, &onSelect, SETTUP_MODE_WL_ACT_HIGH);
-  m7.add_item(&m7_i7, &onSelect, SETTUP_MODE_WL_LIM_CHIGH);
-  m7.add_item(&m7_i8, &onSelect, SETTUP_MODE_WL_ACT_CHIGH);
-
-  menuSystem.set_root_menu(&mRoot);
 }
 
 void onSelect(MenuItem* menuItem) {
@@ -425,21 +328,21 @@ void setCurrentSettupDataValue(int value) {
     case SETTUP_MODE_LCD_MODE      : lcdMode = value;break;
     case SETTUP_MODE_LCD_TIMEOUT   : lcdTimeout = value;break;
     case SETTUP_MODE_WT_LIM_CLOW   : waterTempCriticalLowLimit = value;break;
-    case SETTUP_MODE_WT_ACT_CLOW   : 0 = value;break;
+    case SETTUP_MODE_WT_ACT_CLOW   : break;
     case SETTUP_MODE_WT_LIM_LOW    : waterTempLowLimit = value;break;
-    case SETTUP_MODE_WT_ACT_LOW    : 0 = value;break;
+    case SETTUP_MODE_WT_ACT_LOW    : break;
     case SETTUP_MODE_WT_LIM_HIGH   : waterTempHighLimit = value;break;
-    case SETTUP_MODE_WT_ACT_HIGH   : 0 = value;break;
+    case SETTUP_MODE_WT_ACT_HIGH   : break;
     case SETTUP_MODE_WT_LIM_CHIGH  : waterTempCriticalHighLimit = value;break;
-    case SETTUP_MODE_WT_ACT_CHIGH  : 0 = value;break;
+    case SETTUP_MODE_WT_ACT_CHIGH  : break;
     case SETTUP_MODE_WL_LIM_CLOW   : waterLevelCriticalLowLimit = value;break;
-    case SETTUP_MODE_WL_ACT_CLOW   : 0 = value;break;
+    case SETTUP_MODE_WL_ACT_CLOW   : break;
     case SETTUP_MODE_WL_LIM_LOW    : waterLevelLowLimit = value;break;
-    case SETTUP_MODE_WL_ACT_LOW    : 0 = value;break;
+    case SETTUP_MODE_WL_ACT_LOW    : break;
     case SETTUP_MODE_WL_LIM_HIGH   : waterLevelHighLimit = value;break;
-    case SETTUP_MODE_WL_ACT_HIGH   : 0 = value;break;
+    case SETTUP_MODE_WL_ACT_HIGH   : break;
     case SETTUP_MODE_WL_LIM_CHIGH  : waterLevelCriticalHighLimit = value;break;
-    case SETTUP_MODE_WL_ACT_CHIGH  : 0 = value;break;
+    case SETTUP_MODE_WL_ACT_CHIGH  : break;
   }
 }
 
@@ -536,7 +439,7 @@ void checkGeneralIRCommand(unsigned long command) {
     if (command == KEY_MODE) { // mode
       if (userInterfaceMode == UI_MODE_INFO) {
         userInterfaceMode = UI_MODE_SETTINGS_MENU;
-        menuChanged = true;
+        setMenuChanged(true);
       } else if (userInterfaceMode == UI_MODE_SETTINGS_MENU) {
         userInterfaceMode = UI_MODE_INFO;
       }
@@ -598,28 +501,6 @@ void checkInfoIRCommand(unsigned long command) {
 
 }
 
-void checkSettingsMenuIRCommand(unsigned long command) {
-    if (command == KEY_MUTE) { // mute
-      menuSystem.back();
-      menuChanged = true;
-    }
-    
-    if (command == KEY_PLAY_PAUSE) { // play/pause
-      menuSystem.select();
-      menuChanged = true;
-      settupChanged = true;
-    }
-    
-    if (command == KEY_PREV) { // prev
-      menuSystem.prev();
-      menuChanged = true;
-    }
-    
-    if (command == KEY_NEXT) { // next
-      menuSystem.next();
-      menuChanged = true;
-    }
-}
 
 void checkSettupIRCommand(unsigned long command) {
     if (command == KEY_MUTE) { // mute = cancel
@@ -627,7 +508,7 @@ void checkSettupIRCommand(unsigned long command) {
       delay(1000);
       userInterfaceMode = UI_MODE_SETTINGS_MENU;
       //menuSystem.back();
-      menuChanged = true;
+      setMenuChanged(true);
     }
     
     if (command == KEY_PLAY_PAUSE) { // play/pause = save
@@ -701,7 +582,7 @@ void displayOnLCD() {
       case LCD_INFO_REMAIN_TO_FEED:
         break;
       case LCD_INFO_DESPRE:
-        lcd_1 = " 3A - ver.1.2";// + APP_VERSION_NUMBER;
+        lcd_1 = " 3A - ver.2.0"; // + APP_VERSION_NUMBER;
         lcd_2 = "(c)2014 ValiP";
         break;
     }
@@ -713,18 +594,16 @@ void displayOnLCD() {
 }
 
 void displayMenu() {
-  if (menuChanged) {
+  if (isMenuChanged()) {
     lcd.clear();
   
-    Menu const* cp_menu = menuSystem.get_current_menu();
-  
     lcd.setCursor(0, 0);
-    lcd.print(cp_menu->get_name());
+    lcd.print(getCurrentMenuDescription());
     
     lcd.setCursor(0, 1);
-    lcd.print(cp_menu->get_selected()->get_name());
+    lcd.print(getSelectionMenuDescription());
     
-    menuChanged = false;
+    setMenuChanged(false);
   }
 }
 
@@ -888,6 +767,21 @@ int readTimeHour() {
 int readTimeMinute() {
   DateTime now = RTC.now();
   return now.minute();
+}
+
+void writeDateDay(int value) {
+}
+
+void writeDateMonth(int value) {
+}
+
+void writeDateYear(int value) {
+}
+
+void writeTimeHour(int value) {
+}
+
+void writeTimeMinute(int value) {
 }
 
 // === UTILITY METHODS ===
