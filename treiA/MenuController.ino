@@ -116,25 +116,39 @@ boolean isMenuChanged() {
     return menuChanged;
 }
 
+void displayMenu() {
+  if (isMenuChanged()) {
+    lcd.clear();
+  
+    lcd.setCursor(0, 0);
+    lcd.print(getCurrentMenuDescription());
+    
+    lcd.setCursor(0, 1);
+    lcd.print(getSelectionMenuDescription());
+    
+    setMenuChanged(false);
+  }
+}
+
 void menuGoBack() {
     menuSystem.back();
-    menuChanged = true;
+    setMenuChanged(true);
 }
 
 void menuSelect() {
     menuSystem.select();
-    menuChanged = true;
-    settupChanged = true;
+    setMenuChanged(true);
+    setSettupChanged(true);
 }
 
 void menuPrevious() {
     menuSystem.prev();
-    menuChanged = true;
+    setMenuChanged(true);
 }
 
 void menuNext() {
     menuSystem.next();
-    menuChanged = true;
+    setMenuChanged(true);
 }
 
 char* getCurrentMenuDescription() {

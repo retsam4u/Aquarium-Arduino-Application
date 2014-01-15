@@ -31,10 +31,17 @@
 #include "pitches.h"
 #include "appconstants.h"
 #include "ir_codes.h"
+#include "settup_modes.h"
 #include <MenuSystem.h>
 
-#include <MenuController.ino>
-#include <SelectionController.ino>
+//#include <InfoController.ino>
+//#include <InfoActionController.ino>
+
+//#include <MenuController.ino>
+//#include <MenuActionController.ino>
+
+//#include <SelectionController.ino>
+//#include <SelectionActionController.ino>
 
 
 #define APP_VERSION_NUMBER "2.0"
@@ -54,10 +61,6 @@ RTC_DS1307 RTC;
 
 
 // === setting variables ===
-// internal
-int lcdDelayTime                   = 5000;
-int lcdDelayTimeInPauseMode        = 1000;
-
 // user controlled
 // MENU 1. Date and time
 // date and time read and write directly on rtc
@@ -140,10 +143,6 @@ int waterLevelCriticalHighAlarmAction2  = ALARM_LCD_BLINK;
 int waterLevelCriticalHighAlarmAction3  = ALARM_BEEP_0SEC;
 int waterLevelCriticalHighAlarmAction4  = ALARM_NO_ACTION;
 
-int temporarySettupDataOldValue = 0;
-int temporarySettupDataNewValue = 0;
-boolean settupChanged = false;
-
 // ==================================
 // === internal program variables ===
 // ==================================
@@ -152,476 +151,136 @@ const int UI_MODE_SETTINGS_MENU  = 1;
 const int UI_MODE_SETTUP         = 2;
 int userInterfaceMode      = UI_MODE_INFO;
 
-const int SETTUP_MODE_DATE_DAY      =  0;
-const int SETTUP_MODE_DATE_MONTH    =  1;
-const int SETTUP_MODE_DATE_YEAR     =  2;
-const int SETTUP_MODE_TIME_HOUR     =  3;
-const int SETTUP_MODE_TIME_MINUTE   =  4;
-const int SETTUP_MODE_TIME_MODE     =  5;
-const int SETTUP_MODE_AQL_CONTROL   =  6;
-const int SETTUP_MODE_AQL_MODE      =  7;
-const int SETTUP_MODE_AQL_ON1_HOUR  =  8;
-const int SETTUP_MODE_AQL_ON1_MIN   =  9;
-const int SETTUP_MODE_AQL_OFF1_HOUR = 10;
-const int SETTUP_MODE_AQL_OFF1_MIN  = 11;
-const int SETTUP_MODE_AQL_ON2_HOUR  = 12;
-const int SETTUP_MODE_AQL_ON2_MIN   = 13;
-const int SETTUP_MODE_AQL_OFF2_HOUR = 14;
-const int SETTUP_MODE_AQL_OFF2_MIN  = 15;
-const int SETTUP_MODE_AQV_CONTROL   = 16;
-const int SETTUP_MODE_AQV_MODE      = 17;
-const int SETTUP_MODE_SPEAKER_MODE  = 18;
-const int SETTUP_MODE_ALARMS_MODE   = 19;
-const int SETTUP_MODE_LCD_CONTROL   = 20;
-const int SETTUP_MODE_LCD_MODE      = 21;
-const int SETTUP_MODE_LCD_TIMEOUT   = 22;
-const int SETTUP_MODE_WT_LIM_CLOW   = 23;
-const int SETTUP_MODE_WT_ACT_CLOW   = 24;
-const int SETTUP_MODE_WT_LIM_LOW    = 25;
-const int SETTUP_MODE_WT_ACT_LOW    = 26;
-const int SETTUP_MODE_WT_LIM_HIGH   = 27;
-const int SETTUP_MODE_WT_ACT_HIGH   = 28;
-const int SETTUP_MODE_WT_LIM_CHIGH  = 29;
-const int SETTUP_MODE_WT_ACT_CHIGH  = 30;
-const int SETTUP_MODE_WL_LIM_CLOW   = 31;
-const int SETTUP_MODE_WL_ACT_CLOW   = 32;
-const int SETTUP_MODE_WL_LIM_LOW    = 33;
-const int SETTUP_MODE_WL_ACT_LOW    = 34;
-const int SETTUP_MODE_WL_LIM_HIGH   = 35;
-const int SETTUP_MODE_WL_ACT_HIGH   = 36;
-const int SETTUP_MODE_WL_LIM_CHIGH  = 37;
-const int SETTUP_MODE_WL_ACT_CHIGH  = 38;
-int settupMode = SETTUP_MODE_DATE_DAY;
-
-// === LCD Information ===
-int displayedPage = 0;
-boolean pauseDisplay = false;
-long lastDisplayTime = 0;
 
 String info1 = "N/A";
 String info2 = "N/A";
 
-// === LCD info screen ===
-const int LCD_INFO_MAX_SCREEN     = 14;
-
-// === text constants for info and menu ===
-const String lcdInfoDescrEN[] = {"Date and time", "Temperature", "Level", "Ext temperature", "Ext humidity", 
-                               "Ext light", "Light", "Ventilation", "LCD", 
-                               "Alarms", "Speaker", "Last feed time", "Next feed in", "About"};
-
-const String lcdSettupInfoEN[] = {
-    "clock day  =", "clock month=", "clock year =", "clock hour =", "clock min  =", 
-    "time mode  =", "lights ctrl=", "lights mode=", "AQL on1 H  =", "AQL on1 M  =", 
-    "AQL off1 H =", "AQL off1 M =", "AQL on2 H  =", "AQL on2 M  =", "AQL off2 H =", 
-    "AQL off2 M =", "vent ctrl  =", "vent mode  =", "speak.mode =", "alarms mode=", 
-    "LCD ctrl   =", "LCD mode   =", "LCD timeout=", "temp.lim.vv=", "temp.act.vv=", 
-    "temp.lim.v =", "temp.act.v =", "temp.lim.^ =", "temp.act.^ =", "temp.lim.^^=", 
-    "temp.act.^^=", "lvl.lim.vv =", "lvl.act.vv =", "lvl.lim.v  =", "lvl.act.v  =", 
-    "lvl.lim.^  =", "lvl.act.^  =", "lvl.lim.^^ =", "lvl.act.^^ ="};
-
-
-
-// === sensor data ===
 
 void setup() {
-  RTC.begin();
-  
-  lcd.begin(16,2);
-
-  dht.begin();
-  
-  // Start the ir receiver
-  pinMode(PIN_IR_SENSOR, INPUT);
-  irrecv.enableIRIn();
-  
-  pinMode(PIN_RELAY_CH_1, OUTPUT);
-  pinMode(PIN_RELAY_CH_2, OUTPUT);
-  
-  displayedPage = LCD_INFO_MAX_SCREEN;
-
-  // Menu setup
-  initSettupMenu();
-  
-  pinMode(PIN_SOUND, OUTPUT);
-  toneManual(NOTE_C4, 200);
-  delay(200);
+    RTC.begin();
+    
+    lcd.begin(16,2);
+    
+    dht.begin();
+    
+    // Start the ir receiver
+    pinMode(PIN_IR_SENSOR, INPUT);
+    irrecv.enableIRIn();
+    
+    pinMode(PIN_RELAY_CH_1, OUTPUT);
+    pinMode(PIN_RELAY_CH_2, OUTPUT);
+    
+    // Info setup
+    initInfoDisplay();
+    
+    // Menu setup
+    initSettupMenu();
+    
+    pinMode(PIN_SOUND, OUTPUT);
+    toneManual(NOTE_C4, 200);
+    delay(200);
 }
 
-void onSelect(MenuItem* menuItem) {
-  //char* menuItemName = menuItem->get_name();
-  int menuItemActionCode = menuItem->get_action_code();
-  settupMode = menuItemActionCode;
-  userInterfaceMode = UI_MODE_SETTUP;
-  temporarySettupDataOldValue = getCurrentSettupDataValue();
-  temporarySettupDataNewValue = temporarySettupDataOldValue;
-}
-
-int getCurrentSettupDataValue() {
-  int value = -1;
-  switch (settupMode) {
-    case SETTUP_MODE_DATE_DAY      : value = readDateDay();break;
-    case SETTUP_MODE_DATE_MONTH    : value = readDateMonth();break;
-    case SETTUP_MODE_DATE_YEAR     : value = readDateYear();break;
-    case SETTUP_MODE_TIME_HOUR     : value = readTimeHour();break;
-    case SETTUP_MODE_TIME_MINUTE   : value = readTimeMinute();break;
-    case SETTUP_MODE_TIME_MODE     : value = timeMode;break;
-    case SETTUP_MODE_AQL_CONTROL   : value = aquariumLightsStatus;break;
-    case SETTUP_MODE_AQL_MODE      : value = aquariumLightsMode;break;
-    case SETTUP_MODE_AQL_ON1_HOUR  : value = aquariumLightsOn1TimeHour;break;
-    case SETTUP_MODE_AQL_ON1_MIN   : value = aquariumLightsOn1TimeMinute;break;
-    case SETTUP_MODE_AQL_OFF1_HOUR : value = aquariumLightsOff1TimeHour;break;
-    case SETTUP_MODE_AQL_OFF1_MIN  : value = aquariumLightsOff1TimeMinute;break;
-    case SETTUP_MODE_AQL_ON2_HOUR  : value = aquariumLightsOn2TimeHour;break;
-    case SETTUP_MODE_AQL_ON2_MIN   : value = aquariumLightsOn2TimeMinute;break;
-    case SETTUP_MODE_AQL_OFF2_HOUR : value = aquariumLightsOff2TimeHour;break;
-    case SETTUP_MODE_AQL_OFF2_MIN  : value = aquariumLightsOff2TimeMinute;break;
-    case SETTUP_MODE_AQV_CONTROL   : value = aquariumVentStatus;break;
-    case SETTUP_MODE_AQV_MODE      : value = aquariumVentMode;break;
-    case SETTUP_MODE_SPEAKER_MODE  : value = speakerMode;break;
-    case SETTUP_MODE_ALARMS_MODE   : value = alarmsMode;break;
-    case SETTUP_MODE_LCD_CONTROL   : value = lcdStatus;break;
-    case SETTUP_MODE_LCD_MODE      : value = lcdMode;break;
-    case SETTUP_MODE_LCD_TIMEOUT   : value = lcdTimeout;break;
-    case SETTUP_MODE_WT_LIM_CLOW   : value = waterTempCriticalLowLimit;break;
-    case SETTUP_MODE_WT_ACT_CLOW   : value = 0;break;
-    case SETTUP_MODE_WT_LIM_LOW    : value = waterTempLowLimit;break;
-    case SETTUP_MODE_WT_ACT_LOW    : value = 0;break;
-    case SETTUP_MODE_WT_LIM_HIGH   : value = waterTempHighLimit;break;
-    case SETTUP_MODE_WT_ACT_HIGH   : value = 0;break;
-    case SETTUP_MODE_WT_LIM_CHIGH  : value = waterTempCriticalHighLimit;break;
-    case SETTUP_MODE_WT_ACT_CHIGH  : value = 0;break;
-    case SETTUP_MODE_WL_LIM_CLOW   : value = waterLevelCriticalLowLimit;break;
-    case SETTUP_MODE_WL_ACT_CLOW   : value = 0;break;
-    case SETTUP_MODE_WL_LIM_LOW    : value = waterLevelLowLimit;break;
-    case SETTUP_MODE_WL_ACT_LOW    : value = 0;break;
-    case SETTUP_MODE_WL_LIM_HIGH   : value = waterLevelHighLimit;break;
-    case SETTUP_MODE_WL_ACT_HIGH   : value = 0;break;
-    case SETTUP_MODE_WL_LIM_CHIGH  : value = waterLevelCriticalHighLimit;break;
-    case SETTUP_MODE_WL_ACT_CHIGH  : value = 0;break;
-  }
-  return value;
-}
-
-void setCurrentSettupDataValue(int value) {
-  switch (settupMode) {
-    case SETTUP_MODE_DATE_DAY      : writeDateDay(value);break;
-    case SETTUP_MODE_DATE_MONTH    : writeDateMonth(value);break;
-    case SETTUP_MODE_DATE_YEAR     : writeDateYear(value);break;
-    case SETTUP_MODE_TIME_HOUR     : writeTimeHour(value);break;
-    case SETTUP_MODE_TIME_MINUTE   : writeTimeMinute(value);break;
-    case SETTUP_MODE_TIME_MODE     : timeMode = value;break;
-    case SETTUP_MODE_AQL_CONTROL   : aquariumLightsStatus = value;break;
-    case SETTUP_MODE_AQL_MODE      : aquariumLightsMode = value;break;
-    case SETTUP_MODE_AQL_ON1_HOUR  : aquariumLightsOn1TimeHour = value;break;
-    case SETTUP_MODE_AQL_ON1_MIN   : aquariumLightsOn1TimeMinute = value;break;
-    case SETTUP_MODE_AQL_OFF1_HOUR : aquariumLightsOff1TimeHour = value;break;
-    case SETTUP_MODE_AQL_OFF1_MIN  : aquariumLightsOff1TimeMinute = value;break;
-    case SETTUP_MODE_AQL_ON2_HOUR  : aquariumLightsOn2TimeHour = value;break;
-    case SETTUP_MODE_AQL_ON2_MIN   : aquariumLightsOn2TimeMinute = value;break;
-    case SETTUP_MODE_AQL_OFF2_HOUR : aquariumLightsOff2TimeHour = value;break;
-    case SETTUP_MODE_AQL_OFF2_MIN  : aquariumLightsOff2TimeMinute = value;break;
-    case SETTUP_MODE_AQV_CONTROL   : aquariumVentStatus = value;break;
-    case SETTUP_MODE_AQV_MODE      : aquariumVentMode = value;break;
-    case SETTUP_MODE_SPEAKER_MODE  : speakerMode = value;break;
-    case SETTUP_MODE_ALARMS_MODE   : alarmsMode = value;break;
-    case SETTUP_MODE_LCD_CONTROL   : lcdStatus = value;break;
-    case SETTUP_MODE_LCD_MODE      : lcdMode = value;break;
-    case SETTUP_MODE_LCD_TIMEOUT   : lcdTimeout = value;break;
-    case SETTUP_MODE_WT_LIM_CLOW   : waterTempCriticalLowLimit = value;break;
-    case SETTUP_MODE_WT_ACT_CLOW   : break;
-    case SETTUP_MODE_WT_LIM_LOW    : waterTempLowLimit = value;break;
-    case SETTUP_MODE_WT_ACT_LOW    : break;
-    case SETTUP_MODE_WT_LIM_HIGH   : waterTempHighLimit = value;break;
-    case SETTUP_MODE_WT_ACT_HIGH   : break;
-    case SETTUP_MODE_WT_LIM_CHIGH  : waterTempCriticalHighLimit = value;break;
-    case SETTUP_MODE_WT_ACT_CHIGH  : break;
-    case SETTUP_MODE_WL_LIM_CLOW   : waterLevelCriticalLowLimit = value;break;
-    case SETTUP_MODE_WL_ACT_CLOW   : break;
-    case SETTUP_MODE_WL_LIM_LOW    : waterLevelLowLimit = value;break;
-    case SETTUP_MODE_WL_ACT_LOW    : break;
-    case SETTUP_MODE_WL_LIM_HIGH   : waterLevelHighLimit = value;break;
-    case SETTUP_MODE_WL_ACT_HIGH   : break;
-    case SETTUP_MODE_WL_LIM_CHIGH  : waterLevelCriticalHighLimit = value;break;
-    case SETTUP_MODE_WL_ACT_CHIGH  : break;
-  }
-}
 
 void loop() {
-  checkUserCommand();
-  
-  if (userInterfaceMode == UI_MODE_INFO) {
-    displayOnLCD();
+    checkUserCommand();
     
-  } else if (userInterfaceMode == UI_MODE_SETTINGS_MENU) {
-    displayMenu();
+    if (userInterfaceMode == UI_MODE_INFO) {
+        displayOnLCD();
+      
+    } else if (userInterfaceMode == UI_MODE_SETTINGS_MENU) {
+        displayMenu();
+      
+    } else if (userInterfaceMode == UI_MODE_SETTUP) {
+        displaySettupControl();
+    }
     
-  } else if (userInterfaceMode == UI_MODE_SETTUP) {
-    displaySettupControl();
-  }
-  
-  runRules();
+    runRules();
 }
 
 void runRules() {
-  // IN  : date, time, water temp, water level, room temp, room hum, ext light, alarm status, speaker status
-  // OUT : aq lights, ventilation, feeder, lcd light, speaker, 
-  // LIMITS / TRIGERS : date/time limits, temp limits, level limits, external light level, settings for alarms and speaker
+    // IN  : date, time, water temp, water level, room temp, room hum, ext light, alarm status, speaker status
+    // OUT : aq lights, ventilation, feeder, lcd light, speaker, 
+    // LIMITS / TRIGERS : date/time limits, temp limits, level limits, external light level, settings for alarms and speaker
+    
+    // MONITOR : water temp 
+    // --> ventilation : if wt<24 then vent=off; if wt>=24 then vent=on;
+    // --> if daytime & wt>=28 then lcd=on ; if daytime & wt>=29 then lcd=on & speaker=beep/5min & aq light=off;
+    // --> if nighttime & wt>=30 then (CRITICAL:) lcd=blink/1sec & speaker=beep & aq light=off & aq light=blink/1min;
+    
+    // MONITOR : water level
+    // --> if wl<20% then (CRITICAL:)
+    // --> if wl<80% then lcd=on
+    
+    // MONITOR : time for aq lights
+    // --> if time is one of start lights then aq light=on
+    // --> if time is one of end lights then aq light=off
+    int hour = readTimeHour();
+    int minute = readTimeMinute();
   
-  // MONITOR : water temp 
-  // --> ventilation : if wt<24 then vent=off; if wt>=24 then vent=on;
-  // --> if daytime & wt>=28 then lcd=on ; if daytime & wt>=29 then lcd=on & speaker=beep/5min & aq light=off;
-  // --> if nighttime & wt>=30 then (CRITICAL:) lcd=blink/1sec & speaker=beep & aq light=off & aq light=blink/1min;
-  
-  // MONITOR : water level
-  // --> if wl<20% then (CRITICAL:)
-  // --> if wl<80% then lcd=on
-  
-  // MONITOR : time for aq lights
-  // --> if time is one of start lights then aq light=on
-  // --> if time is one of end lights then aq light=off
-  int hour = readTimeHour();
-  int minute = readTimeMinute();
-
-  // check start time
-  if ((aquariumLightsOn1TimeHour == hour && aquariumLightsOn1TimeMinute == minute) || 
-      (aquariumLightsOn2TimeHour == hour && aquariumLightsOn2TimeMinute == minute)) {
-    aquariumLightsStatus = AQUARIUM_LIGHT_STATUS_ON;
-    digitalWrite(PIN_RELAY_CH_1, HIGH);
-  }
-  
-  // check stop time
-  if ((aquariumLightsOff1TimeHour == hour && aquariumLightsOff1TimeMinute == minute) || 
-      (aquariumLightsOff2TimeHour == hour && aquariumLightsOff2TimeMinute == minute)) {
-    aquariumLightsStatus = AQUARIUM_LIGHT_STATUS_OFF;
-    digitalWrite(PIN_RELAY_CH_1, LOW);
-  }
-  
-  // MONITOR : 
+    // check start time
+    if ((aquariumLightsOn1TimeHour == hour && aquariumLightsOn1TimeMinute == minute) || 
+        (aquariumLightsOn2TimeHour == hour && aquariumLightsOn2TimeMinute == minute)) {
+        aquariumLightsStatus = AQUARIUM_LIGHT_STATUS_ON;
+        digitalWrite(PIN_RELAY_CH_1, HIGH);
+    }
+    
+    // check stop time
+    if ((aquariumLightsOff1TimeHour == hour && aquariumLightsOff1TimeMinute == minute) || 
+        (aquariumLightsOff2TimeHour == hour && aquariumLightsOff2TimeMinute == minute)) {
+        aquariumLightsStatus = AQUARIUM_LIGHT_STATUS_OFF;
+        digitalWrite(PIN_RELAY_CH_1, LOW);
+    }
+    
+    // MONITOR : 
 }
 
 void checkUserCommand() {
-  if (irrecv.decode(&ircommand)) {
-    unsigned long command = ircommand.value;
-
-    checkGeneralIRCommand(command);
+    if (irrecv.decode(&ircommand)) {
+        unsigned long command = ircommand.value;
     
-    if (userInterfaceMode == UI_MODE_INFO) {
-      checkInfoIRCommand(command);
-      
-    } else if (userInterfaceMode == UI_MODE_SETTINGS_MENU) {
-      checkSettingsMenuIRCommand(command);
-      
-    } else if (userInterfaceMode == UI_MODE_SETTUP) {
-      checkSettupIRCommand(command);
+        checkGeneralIRCommand(command);
+        
+        if (userInterfaceMode == UI_MODE_INFO) {
+          checkInfoIRCommand(command);
+          
+        } else if (userInterfaceMode == UI_MODE_SETTINGS_MENU) {
+          checkSettingsMenuIRCommand(command);
+          
+        } else if (userInterfaceMode == UI_MODE_SETTUP) {
+          checkSettupIRCommand(command);
+        }
+    
+        irrecv.resume(); // Receive the next value
+    } else {
+        //Serial.println("ERROR decoding!");
     }
-
-    irrecv.resume(); // Receive the next value
-  } else {
-    //Serial.println("ERROR decoding!");
-  }
 }
 
 void checkGeneralIRCommand(unsigned long command) {
     // use int: ircommand.value
     if (command == KEY_ON_OFF) { // on/off
-      if (lcdStatus == LCD_STATUS_ON) {
-        lcdStatus = LCD_STATUS_OFF;
-        lcd.noBacklight();
-      } else if (lcdStatus == LCD_STATUS_OFF) {
-        lcdStatus = LCD_STATUS_ON;
-        lcd.backlight();
-      }
-      lastDisplayTime = 0;
-      displayedPage = LCD_INFO_LCD_STATUS - 1;
+        if (lcdStatus == LCD_STATUS_ON) {
+            lcdStatus = LCD_STATUS_OFF;
+            lcd.noBacklight();
+        } else if (lcdStatus == LCD_STATUS_OFF) {
+            lcdStatus = LCD_STATUS_ON;
+            lcd.backlight();
+        }
+        
+        gotoInfoPage(LCD_INFO_LCD_STATUS);
     }
     
     // switch mode between INFO and SETTINGS MENU
     if (command == KEY_MODE) { // mode
-      if (userInterfaceMode == UI_MODE_INFO) {
-        userInterfaceMode = UI_MODE_SETTINGS_MENU;
-        setMenuChanged(true);
-      } else if (userInterfaceMode == UI_MODE_SETTINGS_MENU) {
-        userInterfaceMode = UI_MODE_INFO;
-      }
+        if (userInterfaceMode == UI_MODE_INFO) {
+            userInterfaceMode = UI_MODE_SETTINGS_MENU;
+            setMenuChanged(true);
+        } else if (userInterfaceMode == UI_MODE_SETTINGS_MENU) {
+            userInterfaceMode = UI_MODE_INFO;
+        }
     }
     
-}
-
-void checkInfoIRCommand(unsigned long command) {
-    if (command == KEY_PLAY_PAUSE) { // play/pause
-      pauseDisplay = !pauseDisplay;
-    }
-    
-    if (command == KEY_PREV) { // prev
-      lastDisplayTime = 0;
-      if (!pauseDisplay) {
-        displayedPage = displayedPage - 2;
-      } else {
-        displayedPage = displayedPage - 1;
-      }
-      if (displayedPage == -2) displayedPage = LCD_INFO_REMAIN_TO_FEED;
-      if (displayedPage == -1) displayedPage = LCD_INFO_DESPRE;
-    }
-    
-    if (command == KEY_NEXT) { // next
-      lastDisplayTime = 0;
-      if (!pauseDisplay) {
-        displayedPage = displayedPage + 0;
-      } else {
-        displayedPage = displayedPage + 1;
-      }
-      if (displayedPage >= LCD_INFO_MAX_SCREEN) displayedPage = LCD_INFO_DATE_TIME;
-    }
-
-    if (command == KEY_0) { // key 0
-      if (aquariumLightsStatus == AQUARIUM_LIGHT_STATUS_ON) {
-        aquariumLightsStatus = AQUARIUM_LIGHT_STATUS_OFF;
-        digitalWrite(PIN_RELAY_CH_1, LOW);
-      } else if (aquariumLightsStatus == AQUARIUM_LIGHT_STATUS_OFF) {
-        aquariumLightsStatus = AQUARIUM_LIGHT_STATUS_ON;
-        digitalWrite(PIN_RELAY_CH_1, HIGH);
-      }
-      lastDisplayTime = 0;
-      displayedPage = LCD_INFO_AQ_LIGHT;
-      if (!pauseDisplay) displayedPage = displayedPage - 1;
-    }
-    
-    if (command == KEY_1) { // key 1
-      if (aquariumVentStatus == AQUARIUM_VENT_STATUS_ON) {
-        aquariumVentStatus = AQUARIUM_VENT_STATUS_OFF;
-        digitalWrite(PIN_RELAY_CH_2, LOW);
-      } else if (aquariumVentStatus == AQUARIUM_VENT_STATUS_OFF) {
-        aquariumVentStatus = AQUARIUM_VENT_STATUS_ON;
-        digitalWrite(PIN_RELAY_CH_2, HIGH);
-      }
-      lastDisplayTime = 0;
-      displayedPage = LCD_INFO_AQ_VENTILATION;
-      if (!pauseDisplay) displayedPage = displayedPage - 1;
-    }
-
-}
-
-
-void checkSettupIRCommand(unsigned long command) {
-    if (command == KEY_MUTE) { // mute = cancel
-      lcd.setCursor(0, 1); lcd.print("<   CANCELED   >");
-      delay(1000);
-      userInterfaceMode = UI_MODE_SETTINGS_MENU;
-      //menuSystem.back();
-      setMenuChanged(true);
-    }
-    
-    if (command == KEY_PLAY_PAUSE) { // play/pause = save
-      temporarySettupDataOldValue = temporarySettupDataNewValue;
-      settupChanged = true;
-    }
-    
-    if (command == KEY_PREV) { // prev = -value
-      temporarySettupDataNewValue--;
-      settupChanged = true;
-    }
-    
-    if (command == KEY_NEXT) { // next = +value
-      temporarySettupDataNewValue++;
-      settupChanged = true;
-    }
-    
-}
-
-void displayOnLCD() {
-  long currentTime = millis();
-  long timePassed = currentTime - lastDisplayTime;
-  
-  if (timePassed >= lcdDelayTime || lastDisplayTime == 0 || (pauseDisplay && timePassed >= lcdDelayTimeInPauseMode)) {
-    lastDisplayTime = currentTime;
-    
-    if (!pauseDisplay) {
-      displayedPage = displayedPage + 1;
-    }
-    if (displayedPage >= LCD_INFO_MAX_SCREEN) displayedPage = LCD_INFO_DATE_TIME;
-    
-    String lcd_1 = lcdInfoDescrEN[displayedPage];
-    String lcd_2 = "n/a";
-
-    switch (displayedPage) {
-      case LCD_INFO_DATE_TIME:
-        lcd_2 = readDateAndTime();
-        break;
-      case LCD_INFO_WATER_TEMP:
-        lcd_2 = String(readWaterTemp());
-        break;
-      case LCD_INFO_WATER_LEVEL:
-        lcd_2 = String(readWaterLevel());
-        break;
-      case LCD_INFO_ROOM_TEMP:
-        lcd_2 = String(readExtTemp());
-        break;
-      case LCD_INFO_ROOM_HUMIDITY:
-        lcd_2 = String(readExtHum());
-        break;
-      case LCD_INFO_EXT_LIGHT:
-        lcd_2 = String(readExtLight());
-        break;
-      case LCD_INFO_AQ_LIGHT:
-        lcd_2 = getAquariumLightInfo();
-        break;
-      case LCD_INFO_AQ_VENTILATION:
-        lcd_2 = getAquariumVentInfo();
-        break;
-      case LCD_INFO_LCD_STATUS:
-        lcd_2 = getLCDInfo();
-        break;
-      case LCD_INFO_ALARMS_STATUS:
-        lcd_2 = getAlarmsInfo();
-        break;
-      case LCD_INFO_SPEAKER_STATUS:
-        lcd_2 = getSpeakerInfo();
-        break;
-      case LCD_INFO_LAST_FEED_TIME:
-        break;
-      case LCD_INFO_REMAIN_TO_FEED:
-        break;
-      case LCD_INFO_DESPRE:
-        lcd_1 = " 3A - ver.2.0"; // + APP_VERSION_NUMBER;
-        lcd_2 = "(c)2014 ValiP";
-        break;
-    }
-
-    lcd.clear();
-    lcd.setCursor(0, 0);lcd.print(lcd_1);
-    lcd.setCursor(0, 1);lcd.print(lcd_2);
-  }
-}
-
-void displayMenu() {
-  if (isMenuChanged()) {
-    lcd.clear();
-  
-    lcd.setCursor(0, 0);
-    lcd.print(getCurrentMenuDescription());
-    
-    lcd.setCursor(0, 1);
-    lcd.print(getSelectionMenuDescription());
-    
-    setMenuChanged(false);
-  }
-}
-
-void displaySettupControl() {
-  if (settupChanged) {
-    lcd.clear();
-    // first line is info: what is changing and old value
-    // "                "
-    lcd.setCursor(0, 0);
-    String info = lcdSettupInfoEN[settupMode];
-    lcd.print(info + temporarySettupDataOldValue);
-    // second line is (<) =value (>)
-    // "                "
-    lcd.setCursor(0, 1); lcd.print("<");
-    lcd.setCursor(5, 1); lcd.print(temporarySettupDataNewValue);
-    lcd.setCursor(15,1); lcd.print(">");
-    settupChanged = false;
-  }
 }
 
 // === Sensors data read methods ===

@@ -21,3 +21,10 @@ void checkSettingsMenuIRCommand(unsigned long command) {
     }
 }
 
+void onSelect(MenuItem* menuItem) {
+    setSettupMode(menuItem->get_action_code());
+    userInterfaceMode = UI_MODE_SETTUP;
+    initDisplaySettupControl();
+}
+
+
