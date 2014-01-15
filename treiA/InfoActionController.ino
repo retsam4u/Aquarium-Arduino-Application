@@ -1,6 +1,6 @@
 #define KEY_INFO_PAUSE           KEY_PLAY_PAUSE
 #define KEY_INFO_PREV            KEY_PREV
-#define KEY_INFO_NEXT            KEY_PREV
+#define KEY_INFO_NEXT            KEY_NEXT
 #define KEY_INFO_LIGHTS_ON_OFF   KEY_0
 #define KEY_INFO_VENT_ON_OFF     KEY_1
 

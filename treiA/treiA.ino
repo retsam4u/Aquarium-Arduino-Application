@@ -119,7 +119,7 @@ int waterTempCriticalHighAlarmAction3  = ALARM_BEEP_0SEC;
 int waterTempCriticalHighAlarmAction4  = ALARM_AQL_OFF;
 
 // MENU 8. Water level alarm
-int waterLevelCriticalLowLimit          = 50;
+int waterLevelCriticalLowLimit          = 60;
 int waterLevelCriticalLowAlarmAction1   = ALARM_VENT_OFF;
 int waterLevelCriticalLowAlarmAction2   = ALARM_LCD_BLINK;
 int waterLevelCriticalLowAlarmAction3   = ALARM_BEEP_0SEC;
@@ -155,10 +155,48 @@ int userInterfaceMode      = UI_MODE_INFO;
 String info1 = "N/A";
 String info2 = "N/A";
 
+byte newChar1[8] = {
+    B01000,
+    B10100,
+    B01000,
+    B00011,
+    B00100,
+    B00100,
+    B00011,
+    B00000
+};
+
+// arrow right
+byte newChar2[8] = {
+  B00000,
+  B00100,
+  B00010,
+  B11111,
+  B00010,
+  B00100,
+  B00000,
+  B00000
+};
+ 
+// arrow left
+byte newChar3[8] = {
+  B00000,
+  B00100,
+  B01000,
+  B11111,
+  B01000,
+  B00100,
+  B00000,
+  B00000
+};
+
 
 void setup() {
     RTC.begin();
     
+    lcd.createChar(0, newChar1);
+    lcd.createChar(1, newChar2);
+    lcd.createChar(2, newChar3);
     lcd.begin(16,2);
     
     dht.begin();
@@ -281,6 +319,29 @@ void checkGeneralIRCommand(unsigned long command) {
         }
     }
     
+}
+
+void applyControl() {
+    // aquarium lights
+    if (aquariumLightsStatus == AQUARIUM_LIGHT_STATUS_ON) {
+        digitalWrite(PIN_RELAY_CH_1, HIGH);
+    } else if (aquariumLightsStatus == AQUARIUM_LIGHT_STATUS_OFF) {
+        digitalWrite(PIN_RELAY_CH_1, LOW);
+    }
+    
+    // aquarium vent
+    if (aquariumVentStatus == AQUARIUM_VENT_STATUS_ON) {
+        digitalWrite(PIN_RELAY_CH_2, HIGH);
+    } else if (aquariumVentStatus == AQUARIUM_VENT_STATUS_OFF) {
+        digitalWrite(PIN_RELAY_CH_2, LOW);
+    }
+    
+    // lcd
+    if (lcdStatus == LCD_STATUS_ON) {
+        lcd.backlight();
+    } else if (lcdStatus == LCD_STATUS_OFF) {
+        lcd.noBacklight();
+    }
 }
 
 // === Sensors data read methods ===

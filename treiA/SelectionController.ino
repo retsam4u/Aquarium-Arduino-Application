@@ -10,11 +10,11 @@ const String lcdSettupInfoEN[] = {
     "time mode  =", "lights ctrl=", "lights mode=", "AQL on1 H  =", "AQL on1 M  =", 
     "AQL off1 H =", "AQL off1 M =", "AQL on2 H  =", "AQL on2 M  =", "AQL off2 H =", 
     "AQL off2 M =", "vent ctrl  =", "vent mode  =", "speak.mode =", "alarms mode=", 
-    "LCD ctrl   =", "LCD mode   =", "LCD timeout=", "temp.lim.vv=", "temp.act.vv=", 
-    "temp.lim.v =", "temp.act.v =", "temp.lim.^ =", "temp.act.^ =", "temp.lim.^^=", 
-    "temp.act.^^=", "lvl.lim.vv =", "lvl.act.vv =", "lvl.lim.v  =", "lvl.act.v  =", 
-    "lvl.lim.^  =", "lvl.act.^  =", "lvl.lim.^^ =", "lvl.act.^^ ="};
-
+    "LCD ctrl   =", "LCD mode   =", "LCD timeout=", "temp.lim.\xCF\xC6=", "temp.act.\xCF\xC6=", 
+    "temp.lim.\xC6 =", "temp.act.\xC6 =", "temp.lim.\xC5 =", "temp.act.\xC5 =", "temp.lim.\xCF\xC5=", 
+    "temp.act.\xCF\xC5=", "lvl.lim.\xCF\xC6 =", "lvl.act.\xCF\xC6 =", "lvl.lim. \xC6 =", "lvl.act. \xC6 =", 
+    "lvl.lim. \xC5 =", "lvl.act. \xC5 =", "lvl.lim.\xCF\xC5 =", "lvl.act.\xCF\xC5 ="};
+    
 // === Business ===
 void initDisplaySettupControl() {
     setTemporarySettupDataOldValue(getCurrentSettupDataValue());
@@ -34,9 +34,9 @@ void displaySettupControl() {
         lcd.print(info + settupOldValue);
         
         // second line is like: < value >
-        lcd.setCursor(0, 1); lcd.print((char)127);
+        lcd.setCursor(0, 1); lcd.print((String)((char)247)); // sau 200
         lcd.setCursor(6, 1); lcd.print(settupNewValue);
-        lcd.setCursor(15,1); lcd.print((char)126);
+        lcd.setCursor(15,1); lcd.print((String)((char)246)); // sau 199
         
         setSettupChanged(false);
     }
@@ -130,6 +130,7 @@ void setCurrentSettupDataValue(int value) {
     case SETTUP_MODE_WL_LIM_CHIGH  : waterLevelCriticalHighLimit = value;break;
     case SETTUP_MODE_WL_ACT_CHIGH  : break;
   }
+  applyControl();
 }
 
 // returns on 4 chars the displayed text for a value in specific mode
@@ -157,13 +158,15 @@ String getDisplayedSettupData(int value, int settupMode) {
     case SETTUP_MODE_WT_LIM_LOW    : 
     case SETTUP_MODE_WT_LIM_HIGH   : 
     case SETTUP_MODE_WT_LIM_CHIGH  : 
-        displayedValue = String(value) + (char)223 + "C";
+        displayedValue = String(value) + (String)((char)178) + "C";
         break;
     case SETTUP_MODE_WL_LIM_CLOW   : 
     case SETTUP_MODE_WL_LIM_LOW    : 
     case SETTUP_MODE_WL_LIM_HIGH   : 
     case SETTUP_MODE_WL_LIM_CHIGH  : 
         displayedValue = String(value) + "%";
+        // used to search lcd special characters : 
+        //displayedValue = String(value) + " = "  + (String)((char)value);
         break;
     
     // month - for now displayed as number
