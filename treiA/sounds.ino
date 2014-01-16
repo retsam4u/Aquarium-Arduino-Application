@@ -4,7 +4,7 @@ void initSounds() {
     pinMode(PIN_SOUND, OUTPUT);
 }
 
-void startupCheckup() {
+void startupSoundCheckup() {
     toneManual(NOTE_C4, 200);
     delay(200);
 }
