@@ -1,11 +1,20 @@
 /*================================================================================================================
 
 +----------------------------------------------------------------------------------+
-|    Aquarium Application for Arduino  -  ver. 2.0  -  (c)2014 Protiuc Valentin    |
+|    Aquarium Application for Arduino  -  ver. 2.1  -  (c)2014 Protiuc Valentin    |
 +----------------------------------------------------------------------------------+
 
 Changes:
-
+ > TODO version 2.3:
+     - selection controls for alarms definitions when limits (temp and level) reached
+ > TODO version 2.2:
+     - change whay info is displayed: create symbols for each description and display more values (symbols in negative style/inverse colors)
+     - add more shortcut keys in checkInfoIRCommand (when in info mode) for: sound check, sound mode, aquarium lights mode, aquarium vent mode, lcd mode
+ > TODO version 2.1:
+     - make limits to setup values (ex. for minutes limits are 0 and 59; values are circulary: ex. if value = 0 and < pressed then value = 59)
+     - add sounds
+     - organize sensor/info reading and writing (for ex: readTimeHour & writeTimeHour)
+     - create rules
  > version 2.0:
      - MAJOR: restructure project: brake main ino file (treiA.ino) into multiple files!
      - create value-description pairs for variable values that have meaning 
@@ -172,7 +181,7 @@ void setup() {
     
     initSounds();
     
-    startupCheckup();
+    startupSoundCheckup();
 }
 
 
