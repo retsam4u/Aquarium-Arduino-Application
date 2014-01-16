@@ -78,8 +78,8 @@ void initSettupMenu() {
     m2_m3.add_item(&m2_m3_i7, &onSelect, SETTUP_MODE_AQL_OFF2_HOUR);
     m2_m3.add_item(&m2_m3_i8, &onSelect, SETTUP_MODE_AQL_OFF2_MIN);
     mRoot.add_menu(&m3);
-    m2.add_item(&m3_i1, &onSelect, SETTUP_MODE_AQV_CONTROL);
-    m2.add_item(&m3_i2, &onSelect, SETTUP_MODE_AQV_MODE);
+    m3.add_item(&m3_i1, &onSelect, SETTUP_MODE_AQV_CONTROL);
+    m3.add_item(&m3_i2, &onSelect, SETTUP_MODE_AQV_MODE);
     mRoot.add_item(&i3, &onSelect, SETTUP_MODE_SPEAKER_MODE);
     mRoot.add_item(&i4, &onSelect, SETTUP_MODE_ALARMS_MODE);
     mRoot.add_menu(&m5);
