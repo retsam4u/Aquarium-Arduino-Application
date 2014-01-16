@@ -1,25 +1,30 @@
-/*
-* Aquarium Application for Arduino
-* ver. 2.0
-* Changes:
-* > version 2.0:
-*     - MAJOR: restructure project: brake main ino file (treiA.ino) into multiple files!
-*     - create value-description pairs for variable values that have meaning 
-*       (ex. for aquariumLightsStatus make pairs: AQUARIUM_LIGHT_STATUS_OFF=0-"OFF";AQUARIUM_LIGHT_STATUS_ON=1-"ON")
-*     - make value limits (ex. for setting time->minutes limits are: 0 and 59)
-* > version 1.3:
-*     - make change value work in selection menu (write setCurrentSettupDataValue method)
-* > version 1.2:
-*     - fixes
-*     - cancel, previous value, next value, load selected value in selection section from menu
-* > version 1.1:
-*     - change appconstants and application variables
-*     - change how ir commands are read
-*     - add menu option settup mode
-* > version 1.0:
-*     - add settings menu (with MenuSystem library)
-* (c) 2014 Protiuc Valentin
-*/
+/*================================================================================================================
+
++----------------------------------------------------------------------------------+
+|    Aquarium Application for Arduino  -  ver. 2.0  -  (c)2014 Protiuc Valentin    |
++----------------------------------------------------------------------------------+
+
+Changes:
+
+ > version 2.0:
+     - MAJOR: restructure project: brake main ino file (treiA.ino) into multiple files!
+     - create value-description pairs for variable values that have meaning 
+       (ex. for aquariumLightsStatus make pairs: AQUARIUM_LIGHT_STATUS_OFF=0-"OFF";AQUARIUM_LIGHT_STATUS_ON=1-"ON")
+     - create apply commands (after setting commands in selection)
+ > version 1.3:
+     - make change value work in selection menu (write setCurrentSettupDataValue method)
+ > version 1.2:
+     - fixes
+     - cancel, previous value, next value, load selected value in selection section from menu
+ > version 1.1:
+     - change appconstants and application variables
+     - change how ir commands are read
+     - add menu option settup mode
+ > version 1.0:
+     - add settings menu (with MenuSystem library)
+ 
+(c) 2014 Protiuc Valentin
+================================================================================================================*/
 
 // === Include section ===
 #include <Wire.h> 
@@ -28,21 +33,10 @@
 #include <IRremote.h>
 #include <DHT.h>
 #include "pindef.h"
-#include "pitches.h"
 #include "appconstants.h"
 #include "ir_codes.h"
 #include "settup_modes.h"
 #include <MenuSystem.h>
-
-//#include <InfoController.ino>
-//#include <InfoActionController.ino>
-
-//#include <MenuController.ino>
-//#include <MenuActionController.ino>
-
-//#include <SelectionController.ino>
-//#include <SelectionActionController.ino>
-
 
 #define APP_VERSION_NUMBER "2.0"
 
@@ -155,48 +149,10 @@ int userInterfaceMode      = UI_MODE_INFO;
 String info1 = "N/A";
 String info2 = "N/A";
 
-byte newChar1[8] = {
-    B01000,
-    B10100,
-    B01000,
-    B00011,
-    B00100,
-    B00100,
-    B00011,
-    B00000
-};
-
-// arrow right
-byte newChar2[8] = {
-  B00000,
-  B00100,
-  B00010,
-  B11111,
-  B00010,
-  B00100,
-  B00000,
-  B00000
-};
- 
-// arrow left
-byte newChar3[8] = {
-  B00000,
-  B00100,
-  B01000,
-  B11111,
-  B01000,
-  B00100,
-  B00000,
-  B00000
-};
-
 
 void setup() {
     RTC.begin();
     
-    lcd.createChar(0, newChar1);
-    lcd.createChar(1, newChar2);
-    lcd.createChar(2, newChar3);
     lcd.begin(16,2);
     
     dht.begin();
@@ -214,9 +170,9 @@ void setup() {
     // Menu setup
     initSettupMenu();
     
-    pinMode(PIN_SOUND, OUTPUT);
-    toneManual(NOTE_C4, 200);
-    delay(200);
+    initSounds();
+    
+    startupCheckup();
 }
 
 
@@ -234,43 +190,6 @@ void loop() {
     }
     
     runRules();
-}
-
-void runRules() {
-    // IN  : date, time, water temp, water level, room temp, room hum, ext light, alarm status, speaker status
-    // OUT : aq lights, ventilation, feeder, lcd light, speaker, 
-    // LIMITS / TRIGERS : date/time limits, temp limits, level limits, external light level, settings for alarms and speaker
-    
-    // MONITOR : water temp 
-    // --> ventilation : if wt<24 then vent=off; if wt>=24 then vent=on;
-    // --> if daytime & wt>=28 then lcd=on ; if daytime & wt>=29 then lcd=on & speaker=beep/5min & aq light=off;
-    // --> if nighttime & wt>=30 then (CRITICAL:) lcd=blink/1sec & speaker=beep & aq light=off & aq light=blink/1min;
-    
-    // MONITOR : water level
-    // --> if wl<20% then (CRITICAL:)
-    // --> if wl<80% then lcd=on
-    
-    // MONITOR : time for aq lights
-    // --> if time is one of start lights then aq light=on
-    // --> if time is one of end lights then aq light=off
-    int hour = readTimeHour();
-    int minute = readTimeMinute();
-  
-    // check start time
-    if ((aquariumLightsOn1TimeHour == hour && aquariumLightsOn1TimeMinute == minute) || 
-        (aquariumLightsOn2TimeHour == hour && aquariumLightsOn2TimeMinute == minute)) {
-        aquariumLightsStatus = AQUARIUM_LIGHT_STATUS_ON;
-        digitalWrite(PIN_RELAY_CH_1, HIGH);
-    }
-    
-    // check stop time
-    if ((aquariumLightsOff1TimeHour == hour && aquariumLightsOff1TimeMinute == minute) || 
-        (aquariumLightsOff2TimeHour == hour && aquariumLightsOff2TimeMinute == minute)) {
-        aquariumLightsStatus = AQUARIUM_LIGHT_STATUS_OFF;
-        digitalWrite(PIN_RELAY_CH_1, LOW);
-    }
-    
-    // MONITOR : 
 }
 
 void checkUserCommand() {
@@ -504,37 +423,4 @@ void writeTimeHour(int value) {
 void writeTimeMinute(int value) {
 }
 
-// === UTILITY METHODS ===
-void toneManual(int frequency, int duration)
-{
-  unsigned long period = 1000000/frequency;
-  unsigned long length;
-  boolean state = false;
-  for (length = 0; length < (long) duration * 1000; length += period) {
-    state = !state;
-    digitalWrite(PIN_SOUND, state);
-    /* The 50uS correspond to the time the rest of the loop body takes.
-     * It seems about right, but has not been tuned precisely for
-     * a 16MHz ATMega. */
-    delayMicroseconds(period - 50);
-  }
-}
-
-
-
-//- lights (L) and ventilation (V) can be controlled manualy (M) or auto (A)
-//- if L and V are A then are turned ON / OFF in next order of priorities:
-//	I.   if alarms are OFF then L and V mode is set to M
-//	II.  if alarms are CRITICAL then:
-//			- critical alarms are checked and L and V are turned ON/OFF based on rules
-//			- if no critical limits reached then L and V are turned ON/OFF based on L auto times
-//	III. if alarms are ON then:
-//			- critical alarms are checked and rules have priority
-//			- low/high limits alarms are checkd and rules have priority
-//			- if no alarm is turned on (no limits reached) then L and V are turned based on L auto times
-//
-//
-//RULE: 
-//	If L and/or V mode is A then Alarms cannot be set to OFF! - if alarms are off they are set automaticaly to ON!
-//	If Alarms are set to OFF then L and V cannot be set to A! - if L/V are set to A they will be reset to M!
 
