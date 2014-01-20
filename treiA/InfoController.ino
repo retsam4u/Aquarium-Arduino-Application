@@ -74,7 +74,7 @@ void displayOnLCD() {
             case LCD_INFO_REMAIN_TO_FEED:
                 break;
             case LCD_INFO_DESPRE:
-                lcd_1 = " 3A - ver.2.0"; // + APP_VERSION_NUMBER;
+                lcd_1 = " 3A - ver." + String(APP_VERSION_NUMBER);
                 lcd_2 = "(c)2014 ValiP";
                 break;
         }

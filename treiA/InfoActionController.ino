@@ -5,38 +5,41 @@
 #define KEY_INFO_VENT_ON_OFF     KEY_1
 
 void checkInfoIRCommand(unsigned long command) {
-    if (command == KEY_INFO_PAUSE) { // play/pause
+    if (command == KEY_INFO_PAUSE) {
+        keyBeep();
         pausePlayDisplay();
     }
     
-    if (command == KEY_INFO_PREV) { // prev
+    if (command == KEY_INFO_PREV) {
+        keyBeep();
         prevInfoPage();
     }
     
-    if (command == KEY_INFO_NEXT) { // next
+    if (command == KEY_INFO_NEXT) {
+        keyBeep();
         nextInfoPage();
     }
 
-    if (command == KEY_INFO_LIGHTS_ON_OFF) { // key 0
-      if (aquariumLightsStatus == AQUARIUM_LIGHT_STATUS_ON) {
-        aquariumLightsStatus = AQUARIUM_LIGHT_STATUS_OFF;
-        digitalWrite(PIN_RELAY_CH_1, LOW);
-      } else if (aquariumLightsStatus == AQUARIUM_LIGHT_STATUS_OFF) {
-        aquariumLightsStatus = AQUARIUM_LIGHT_STATUS_ON;
-        digitalWrite(PIN_RELAY_CH_1, HIGH);
-      }
-      gotoInfoPage(LCD_INFO_AQ_LIGHT);
+    if (command == KEY_INFO_LIGHTS_ON_OFF) {
+        keyBeep();
+        if (aquariumLightsStatus == AQUARIUM_LIGHT_STATUS_ON) {
+            turnAquariumLightsOff();
+            
+        } else if (aquariumLightsStatus == AQUARIUM_LIGHT_STATUS_OFF) {
+            turnAquariumLightsOn();
+        }
+        gotoInfoPage(LCD_INFO_AQ_LIGHT);
     }
     
-    if (command == KEY_INFO_VENT_ON_OFF) { // key 1
-      if (aquariumVentStatus == AQUARIUM_VENT_STATUS_ON) {
-        aquariumVentStatus = AQUARIUM_VENT_STATUS_OFF;
-        digitalWrite(PIN_RELAY_CH_2, LOW);
-      } else if (aquariumVentStatus == AQUARIUM_VENT_STATUS_OFF) {
-        aquariumVentStatus = AQUARIUM_VENT_STATUS_ON;
-        digitalWrite(PIN_RELAY_CH_2, HIGH);
-      }
-      gotoInfoPage(LCD_INFO_AQ_VENTILATION);
+    if (command == KEY_INFO_VENT_ON_OFF) {
+        keyBeep();
+        if (aquariumVentStatus == AQUARIUM_VENT_STATUS_ON) {
+            turnAquariumVentOff();
+            
+        } else if (aquariumVentStatus == AQUARIUM_VENT_STATUS_OFF) {
+            turnAquariumVentOn();
+        }
+        gotoInfoPage(LCD_INFO_AQ_VENTILATION);
     }
 
 }

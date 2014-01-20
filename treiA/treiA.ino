@@ -5,12 +5,18 @@
 +----------------------------------------------------------------------------------+
 
 Changes:
+ > TODO version 3.0:
+     - add wifi capabilities
+ > TODO version 2.4:
+     - create instruction manual and inside application help
+     - optimize application
  > TODO version 2.3:
      - selection controls for alarms definitions when limits (temp and level) reached
  > TODO version 2.2:
+     - verify rules (validate that rules are ok)
      - change whay info is displayed: create symbols for each description and display more values (symbols in negative style/inverse colors)
      - add more shortcut keys in checkInfoIRCommand (when in info mode) for: sound check, sound mode, aquarium lights mode, aquarium vent mode, lcd mode
- > TODO version 2.1:
+ > version 2.1:
      - make limits to setup values (ex. for minutes limits are 0 and 59; values are circulary: ex. if value = 0 and < pressed then value = 59)
      - add sounds
      - organize sensor/info reading and writing (for ex: readTimeHour & writeTimeHour)
@@ -35,6 +41,9 @@ Changes:
 (c) 2014 Protiuc Valentin
 ================================================================================================================*/
 
+
+#define APP_VERSION_NUMBER "2.1"
+
 // === Include section ===
 #include <Wire.h> 
 #include <LiquidCrystal_I2C.h>
@@ -46,8 +55,6 @@ Changes:
 #include "ir_codes.h"
 #include "settup_modes.h"
 #include <MenuSystem.h>
-
-#define APP_VERSION_NUMBER "2.0"
 
 // === init LCD ===
 LiquidCrystal_I2C lcd(0x20, 2,1,0,4,5,6,7,3, POSITIVE);
@@ -80,6 +87,7 @@ int aquariumLightsOn2TimeHour      = 15;
 int aquariumLightsOn2TimeMinute    = 0;
 int aquariumLightsOff2TimeHour     = 21;
 int aquariumLightsOff2TimeMinute   = 30;
+int aquariumLightsBlinkTime        = 0;
 
 // MENU 3. Aquarium vent
 int aquariumVentStatus             = AQUARIUM_VENT_STATUS_OFF;
@@ -87,6 +95,7 @@ int aquariumVentMode               = AQUARIUM_VENT_MODE_AUTO;
 
 // MENU 4. Speaker
 int speakerMode                    = SPEAKER_MODE_ON;
+int speakerBeepTime                = 0;
 
 // MENU 5. Alarms mode
 int alarmsMode                     = ALARMS_MODE_ON;
@@ -95,6 +104,10 @@ int alarmsMode                     = ALARMS_MODE_ON;
 int lcdStatus                      = LCD_STATUS_ON;
 int lcdMode                        = LCD_MODE_AUTO;
 int lcdTimeout                     = 60;
+int lcdBlinkTime                   = 0;
+long lcdTimeoutStartTime           = 0;
+long lastLcdBlinkTime              = 0;
+
 
 // MENU 7. Water temperature alarm
 int waterTempCriticalLowLimit          = 21;
@@ -110,7 +123,7 @@ int waterTempLowAlarmAction3           = ALARM_NO_ACTION;
 int waterTempLowAlarmAction4           = ALARM_NO_ACTION;
 
 int waterTempHighLimit                 = 26;
-int waterTempHighAlarmAction1          = ALARM_VENT_OFF;
+int waterTempHighAlarmAction1          = ALARM_VENT_ON;
 int waterTempHighAlarmAction2          = ALARM_NO_ACTION;
 int waterTempHighAlarmAction3          = ALARM_NO_ACTION;
 int waterTempHighAlarmAction4          = ALARM_NO_ACTION;
@@ -119,7 +132,7 @@ int waterTempCriticalHighLimit         = 29;
 int waterTempCriticalHighAlarmAction1  = ALARM_VENT_ON;
 int waterTempCriticalHighAlarmAction2  = ALARM_LCD_BLINK;
 int waterTempCriticalHighAlarmAction3  = ALARM_BEEP_0SEC;
-int waterTempCriticalHighAlarmAction4  = ALARM_AQL_OFF;
+int waterTempCriticalHighAlarmAction4  = ALARM_NO_ACTION;
 
 // MENU 8. Water level alarm
 int waterLevelCriticalLowLimit          = 60;
@@ -227,11 +240,9 @@ void checkGeneralIRCommand(unsigned long command) {
     // use int: ircommand.value
     if (command == KEY_ON_OFF) { // on/off
         if (lcdStatus == LCD_STATUS_ON) {
-            lcdStatus = LCD_STATUS_OFF;
-            lcd.noBacklight();
+            turnLcdOff();
         } else if (lcdStatus == LCD_STATUS_OFF) {
-            lcdStatus = LCD_STATUS_ON;
-            lcd.backlight();
+            turnLcdOn();
         }
         
         gotoInfoPage(LCD_INFO_LCD_STATUS);
@@ -250,146 +261,151 @@ void checkGeneralIRCommand(unsigned long command) {
 }
 
 void applyControl() {
-    // aquarium lights
-    if (aquariumLightsStatus == AQUARIUM_LIGHT_STATUS_ON) {
-        digitalWrite(PIN_RELAY_CH_1, HIGH);
-    } else if (aquariumLightsStatus == AQUARIUM_LIGHT_STATUS_OFF) {
-        digitalWrite(PIN_RELAY_CH_1, LOW);
-    }
+    // apply aquarium lights status
+    applyAquariumLightsStatus();
     
-    // aquarium vent
-    if (aquariumVentStatus == AQUARIUM_VENT_STATUS_ON) {
-        digitalWrite(PIN_RELAY_CH_2, HIGH);
-    } else if (aquariumVentStatus == AQUARIUM_VENT_STATUS_OFF) {
-        digitalWrite(PIN_RELAY_CH_2, LOW);
-    }
+    // apply aquarium vent status
+    applyAquariumVentStatus();
     
     // lcd
-    if (lcdStatus == LCD_STATUS_ON) {
-        lcd.backlight();
-    } else if (lcdStatus == LCD_STATUS_OFF) {
-        lcd.noBacklight();
-    }
+    applyLcdStatus();
 }
 
 // === Sensors data read methods ===
 int readExtLight() {
-  return analogRead(PIN_EXT_LIGHT);
+    return analogRead(PIN_EXT_LIGHT);
 }
 
 int readExtTemp() {
-  return (int)dht.readTemperature();
+    return (int)dht.readTemperature();
 }
 
 int readExtHum() {
-  return (int)dht.readHumidity();
+    return (int)dht.readHumidity();
 }
 
 int readWaterLevel() {
-  return analogRead(PIN_WATER_LEVEL);
+    return analogRead(PIN_WATER_LEVEL);
 }
 
 int readWaterTemp() {
-  int rawADC = analogRead(PIN_WATER_TEMP);
-  long resistance;
-  float pad = 10000;
-  float temp;  // Dual-Purpose variable to save space.
-
-  resistance=((1024 * pad / rawADC) - pad); 
-  temp = log(resistance); // Saving the Log(resistance) so not to calculate  it 4 times later
-  temp = 1 / (0.001129148 + (0.000234125 * temp) + (0.0000000876741 * temp * temp * temp));
-  temp = temp - 273.15; // Convert Kelvin to Celsius                      
-  // Uncomment this line for the function to return Fahrenheit instead.
-  //temp = (temp * 9.0)/ 5.0 + 32.0; // Convert to Fahrenheit
-  return (int)temp; // Return the Temperature
+    int rawADC = analogRead(PIN_WATER_TEMP);
+    long resistance;
+    float pad = 10000;
+    float temp;  // Dual-Purpose variable to save space.
+  
+    resistance=((1024 * pad / rawADC) - pad); 
+    temp = log(resistance); // Saving the Log(resistance) so not to calculate  it 4 times later
+    temp = 1 / (0.001129148 + (0.000234125 * temp) + (0.0000000876741 * temp * temp * temp));
+    temp = temp - 273.15; // Convert Kelvin to Celsius                      
+    // Uncomment this line for the function to return Fahrenheit instead.
+    //temp = (temp * 9.0)/ 5.0 + 32.0; // Convert to Fahrenheit
+    return (int)temp; // Return the Temperature
 }
 
 String getAquariumLightInfo() {
-  if (aquariumLightsStatus == AQUARIUM_LIGHT_STATUS_OFF) {
-    info1 = "OFF";
-  } else if (aquariumLightsStatus == AQUARIUM_LIGHT_STATUS_ON) {
-    info1 = "ON";
-  }
-  if (aquariumLightsMode == AQUARIUM_LIGHT_MODE_AUTO) {
-    info2 = "AUTO";
-  } else if (aquariumLightsMode == AQUARIUM_LIGHT_MODE_MANUAL) {
-    info2 = "MANUAL";
-  }
-  return info1 + " - " + info2;
+    if (aquariumLightsStatus == AQUARIUM_LIGHT_STATUS_OFF) {
+        info1 = "OFF";
+    } else if (aquariumLightsStatus == AQUARIUM_LIGHT_STATUS_ON) {
+        info1 = "ON";
+    }
+    if (aquariumLightsMode == AQUARIUM_LIGHT_MODE_AUTO) {
+        info2 = "AUTO";
+    } else if (aquariumLightsMode == AQUARIUM_LIGHT_MODE_MANUAL) {
+        info2 = "MANUAL";
+    }
+    return info1 + " - " + info2;
 }
 
 String getAquariumVentInfo() {
-  if (aquariumVentStatus == AQUARIUM_VENT_STATUS_OFF) {
-    info1 = "OFF";
-  } else if (aquariumVentStatus == AQUARIUM_VENT_STATUS_ON) {
-    info1 = "ON";
-  }
-  if (aquariumVentMode == AQUARIUM_VENT_MODE_AUTO) {
-    info2 = "AUTO";
-  } else if (aquariumVentMode == AQUARIUM_VENT_MODE_MANUAL) {
-    info2 = "MANUAL";
-  }
-  return info1 + " - " + info2;
+    if (aquariumVentStatus == AQUARIUM_VENT_STATUS_OFF) {
+        info1 = "OFF";
+    } else if (aquariumVentStatus == AQUARIUM_VENT_STATUS_ON) {
+        info1 = "ON";
+    }
+    if (aquariumVentMode == AQUARIUM_VENT_MODE_AUTO) {
+        info2 = "AUTO";
+    } else if (aquariumVentMode == AQUARIUM_VENT_MODE_MANUAL) {
+        info2 = "MANUAL";
+    }
+    return info1 + " - " + info2;
 }
 
 String getLCDInfo() {
-  if (lcdStatus == LCD_STATUS_OFF) {
-    info1 = "OFF";
-  } else if (lcdStatus == LCD_STATUS_ON) {
-    info1 = "ON - Timeout=" + String(lcdTimeout);
-  }
-  if (lcdMode == LCD_MODE_AUTO) {
-    info2 = "AUTO";
-  } else if (lcdMode == LCD_MODE_MANUAL) {
-    info2 = "MANUAL";
-  }
-  return info1 + " - " + info2;
+    if (lcdStatus == LCD_STATUS_OFF) {
+        info1 = "OFF";
+    } else if (lcdStatus == LCD_STATUS_ON) {
+        info1 = "ON - Timeout=" + String(lcdTimeout);
+    }
+    if (lcdMode == LCD_MODE_AUTO) {
+        info2 = "AUTO";
+    } else if (lcdMode == LCD_MODE_MANUAL) {
+        info2 = "MANUAL";
+    }
+    return info1 + " - " + info2;
 }
 
 String getAlarmsInfo() {
-  if (alarmsMode == ALARMS_MODE_OFF) {
-    info1 = "OFF";
-  } else if (alarmsMode == ALARMS_MODE_ON) {
-    info1 = "ON";
-  } else if (alarmsMode == ALARMS_MODE_CRITICAL) {
-    info1 = "CRITICAL";
-  }
-  return info1;
+    if (alarmsMode == ALARMS_MODE_OFF) {
+        info1 = "OFF";
+    } else if (alarmsMode == ALARMS_MODE_ON) {
+        info1 = "ON";
+    } else if (alarmsMode == ALARMS_MODE_CRITICAL) {
+        info1 = "CRITICAL";
+    }
+    return info1;
 }
 
 String getSpeakerInfo() {
-  if (speakerMode == SPEAKER_MODE_OFF) {
-    info1 = "OFF";
-  } else if (speakerMode == SPEAKER_MODE_ON) {
-    info1 = "ON";
-  } else if (speakerMode == SPEAKER_MODE_ALARMS) {
-    info1 = "ALARMS";
-  } else if (speakerMode == SPEAKER_MODE_CRITICAL) {
-    info1 = "CRITICAL";
-  }
-  return info1;
+    if (speakerMode == SPEAKER_MODE_OFF) {
+        info1 = "OFF";
+    } else if (speakerMode == SPEAKER_MODE_ON) {
+        info1 = "ON";
+    } else if (speakerMode == SPEAKER_MODE_ALARMS) {
+        info1 = "ALARMS";
+    } else if (speakerMode == SPEAKER_MODE_CRITICAL) {
+        info1 = "CRITICAL";
+    }
+    return info1;
 }
 
 String readDateAndTime() {
-  DateTime now = RTC.now();
-  int ih = now.hour();
-  int im = now.minute();
-  int id = now.day();
-  int iM = now.month();
-  int iy = now.year();
-  
-  String sh = String(ih);
-  String sm = String(im);
-  String sd = String(id);
-  String sM = String(iM);
-  String sy = String(iy);
-  
-  if (ih < 10) sh = "0" + sh;
-  if (im < 10) sm = "0" + sm;
-  if (id < 10) sd = "0" + sd;
-  if (iM < 10) sM = "0" + sM;
-  
-  return sh + ":" + sm + " " + sd + "." + sM + "." + sy;
+    DateTime now = RTC.now();
+    int ih = now.hour();
+    int im = now.minute();
+    int id = now.day();
+    int iM = now.month();
+    int iy = now.year();
+    
+    String sh = String(ih);
+    String sm = String(im);
+    String sd = String(id);
+    String sM = String(iM);
+    String sy = String(iy);
+    String smode = "";
+    
+    if (timeMode == TIME_MODE_AM_PM) {
+        smode = "AM";
+        if (ih >= 12) {
+            smode = "PM";
+            ih = ih - 12;
+        }
+        if (ih == 0) ih = 12;
+    }
+    
+    if (ih < 10) sh = "0" + sh;
+    if (im < 10) sm = "0" + sm;
+    if (id < 10) sd = "0" + sd;
+    if (iM < 10) sM = "0" + sM;
+    
+    String dateTime = "";
+    if (timeMode == TIME_MODE_24H) {
+        dateTime = sh + ":" + sm + " " + sd + "." + sM + "." + sy;
+    } else {
+        dateTime = sh + ":" + sm + smode + " " + sd + "." + sM + "." + String(iy-2000);
+    }
+    
+    return dateTime;
 }
 
 int readDateDay() {
@@ -418,18 +434,28 @@ int readTimeMinute() {
 }
 
 void writeDateDay(int value) {
+    DateTime now = RTC.now();
+    RTC.adjust(DateTime (now.year(), now.month(), value, now.hour(), now.minute(), now.second()));
 }
 
 void writeDateMonth(int value) {
+    DateTime now = RTC.now();
+    RTC.adjust(DateTime (now.year(), value, now.day(), now.hour(), now.minute(), now.second()));
 }
 
 void writeDateYear(int value) {
+    DateTime now = RTC.now();
+    RTC.adjust(DateTime (value, now.month(), now.day(), now.hour(), now.minute(), now.second()));
 }
 
 void writeTimeHour(int value) {
+    DateTime now = RTC.now();
+    RTC.adjust(DateTime (now.year(), now.month(), now.day(), value, now.minute(), now.second()));
 }
 
 void writeTimeMinute(int value) {
+    DateTime now = RTC.now();
+    RTC.adjust(DateTime (now.year(), now.month(), now.day(), now.hour(), value, 0));
 }
 
 

@@ -5,18 +5,22 @@
 
 void checkSettingsMenuIRCommand(unsigned long command) {
     if (command == KEY_MENU_BACK) {
+        keyBeep();
         menuGoBack();
     }
     
     if (command == KEY_MENU_SELECT) {
+        keyBeep();
         menuSelect();
     }
     
     if (command == KEY_MENU_PREVIOUS) {
+        keyBeep();
         menuPrevious();
     }
     
     if (command == KEY_MENU_NEXT) {
+        keyBeep();
         menuNext();
     }
 }

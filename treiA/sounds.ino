@@ -5,8 +5,19 @@ void initSounds() {
 }
 
 void startupSoundCheckup() {
-    toneManual(NOTE_C4, 200);
-    delay(200);
+    toneManual(NOTE_C4, 500);
+    delay(500);
+}
+
+void keyBeep() {
+    if (lcdMode == LCD_MODE_AUTO && lcdTimeoutStartTime > 0) {
+        lcdTimeoutStartTime = millis();
+    }
+
+    if (speakerMode == SPEAKER_MODE_ON) {
+        toneManual(NOTE_C5, 100);
+        delay(10);
+    }
 }
 
 void toneManual(int frequency, int duration)

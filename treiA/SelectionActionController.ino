@@ -5,6 +5,7 @@
 
 void checkSettupIRCommand(unsigned long command) {
     if (command == KEY_MUTE) { // mute = cancel
+        keyBeep();
         lcd.setCursor(1, 1); lcd.print("   CANCELED   ");
         delay(1000);
 
@@ -12,6 +13,7 @@ void checkSettupIRCommand(unsigned long command) {
     }
     
     if (command == KEY_PLAY_PAUSE) { // play/pause = save
+        keyBeep();
         lcd.setCursor(1, 1); lcd.print(" SAVED: " + getDisplayedSettupData(getTemporarySettupDataNewValue(), getSettupMode()));
         delay(1000);
         
@@ -20,15 +22,27 @@ void checkSettupIRCommand(unsigned long command) {
         returnToSettupMenu();
     }
     
-    if (command == KEY_PREV) { // prev = -value
-        setTemporarySettupDataNewValue(getTemporarySettupDataNewValue() - 1);
+    if (command == KEY_PREV || command == KEY_NEXT) { // prev = -value ; next = +value
+        keyBeep();
+        int newValue = getTemporarySettupDataNewValue();
+        
+        // increment or decrement value
+        if (command == KEY_PREV) newValue -= getSettupValueStep();
+        if (command == KEY_NEXT) newValue += getSettupValueStep();
+
+        // check limits
+        if (newValue < getSettupValueLimitLow()) {
+            newValue = getSettupValueLimitHigh();
+        }
+        if (newValue > getSettupValueLimitHigh()) {
+            newValue = getSettupValueLimitLow();
+        }
+        
+        // set new value
+        setTemporarySettupDataNewValue(newValue);
         setSettupChanged(true);
     }
     
-    if (command == KEY_NEXT) { // next = +value
-        setTemporarySettupDataNewValue(getTemporarySettupDataNewValue() + 1);
-        setSettupChanged(true);
-    }
 }
 
 // === Helper method ===
