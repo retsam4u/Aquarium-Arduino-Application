@@ -85,8 +85,8 @@ int aquariumLightsOff1TimeHour     = 13;
 int aquariumLightsOff1TimeMinute   = 0;
 int aquariumLightsOn2TimeHour      = 15;
 int aquariumLightsOn2TimeMinute    = 0;
-int aquariumLightsOff2TimeHour     = 21;
-int aquariumLightsOff2TimeMinute   = 30;
+int aquariumLightsOff2TimeHour     = 22;
+int aquariumLightsOff2TimeMinute   = 0;
 int aquariumLightsBlinkTime        = 0;
 
 // MENU 3. Aquarium vent
