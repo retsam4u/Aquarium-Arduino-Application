@@ -159,6 +159,9 @@ int waterLevelCriticalHighAlarmAction2  = ALARM_LCD_BLINK;
 int waterLevelCriticalHighAlarmAction3  = ALARM_BEEP_0SEC;
 int waterLevelCriticalHighAlarmAction4  = ALARM_NO_ACTION;
 
+int waterLevel100percentValue = 900;
+int waterLevel50percentValue = 500;
+
 // ==================================
 // === internal program variables ===
 // ==================================
@@ -285,7 +288,11 @@ int readExtHum() {
 }
 
 int readWaterLevel() {
-    return analogRead(PIN_WATER_LEVEL);
+    int rawLevel = analogRead(PIN_WATER_LEVEL);
+    int zeroLevel = 2 * waterLevel50percentValue - waterLevel100percentValue;
+    float onePercent = (waterLevel100percentValue - waterLevel50percentValue) / 50;
+    float procent = (rawLevel - zeroLevel) / onePercent;
+    return  (int) procent;
 }
 
 int readWaterTemp() {

@@ -40,10 +40,10 @@ void displayOnLCD() {
                 lcd_2 = readDateAndTime();
                 break;
             case LCD_INFO_WATER_TEMP:
-                lcd_2 = String(readWaterTemp());
+                lcd_2 = String(readWaterTemp()) + (String)((char)178) + "C";
                 break;
             case LCD_INFO_WATER_LEVEL:
-                lcd_2 = String(readWaterLevel());
+                lcd_2 = String(readWaterLevel()) + "%";
                 break;
             case LCD_INFO_ROOM_TEMP:
                 lcd_2 = String(readExtTemp());
