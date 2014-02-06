@@ -98,12 +98,12 @@ int speakerMode                    = SPEAKER_MODE_ON;
 int speakerBeepTime                = 0;
 
 // MENU 5. Alarms mode
-int alarmsMode                     = ALARMS_MODE_ON;
+int alarmsMode                     = ALARMS_MODE_OFF;
 
 // MENU 6. LCD
 int lcdStatus                      = LCD_STATUS_ON;
 int lcdMode                        = LCD_MODE_AUTO;
-int lcdTimeout                     = 60;
+int lcdTimeout                     = 30;
 int lcdBlinkTime                   = 0;
 long lcdTimeoutStartTime           = 0;
 long lastLcdBlinkTime              = 0;
@@ -242,6 +242,7 @@ void checkUserCommand() {
 void checkGeneralIRCommand(unsigned long command) {
     // use int: ircommand.value
     if (command == KEY_ON_OFF) { // on/off
+        keyBeep();
         if (lcdStatus == LCD_STATUS_ON) {
             turnLcdOff();
         } else if (lcdStatus == LCD_STATUS_OFF) {
@@ -253,6 +254,7 @@ void checkGeneralIRCommand(unsigned long command) {
     
     // switch mode between INFO and SETTINGS MENU
     if (command == KEY_MODE) { // mode
+        keyBeep();
         if (userInterfaceMode == UI_MODE_INFO) {
             userInterfaceMode = UI_MODE_SETTINGS_MENU;
             setMenuChanged(true);

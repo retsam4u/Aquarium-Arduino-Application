@@ -24,20 +24,25 @@ boolean aquariumLightsStatusChanged = false;
 void runRules() {
     boolean ok = true;
     
-    if (ok) ok = monitorWaterTempLimits();
-    
-    if (ok) ok = monitorWaterLevelLimits();
+    monitorTimeForAquariumLights();
+    monitorLcdTimeOut();
+
+    if (alarmsMode != ALARMS_MODE_OFF) {
+        if (ok) ok = monitorWaterTempLimits();
+        
+        if (ok) ok = monitorWaterLevelLimits();
+    }
     
     if (ok) {
-       monitorTimeForAquariumLights();
-       monitorLcdTimeOut();
+//       monitorTimeForAquariumLights();
+//       monitorLcdTimeOut();
     }
     
     monitorLcdBlink();
 }
 
 
-boolean monitorTimeForAquariumLights() {
+void monitorTimeForAquariumLights() {
     int hour = readTimeHour();
     int minute = readTimeMinute();
     if (!aquariumLightsStatusChanged) {
@@ -80,7 +85,7 @@ boolean monitorTimeForAquariumLights() {
     }
 }
 
-boolean monitorLcdTimeOut() {
+void monitorLcdTimeOut() {
     if (lcdMode == LCD_MODE_AUTO) {
         if (lcdTimeoutStartTime != 0 && millis() - lcdTimeoutStartTime >= lcdTimeout * 1000) {
             turnLcdOff();
@@ -97,8 +102,8 @@ void monitorLcdBlink() {
 
 boolean monitorWaterTempLimits() {
     boolean ok = true;
-    int waterTemp = readWaterTemp();
     if (alarmsMode == ALARMS_MODE_CRITICAL || alarmsMode == ALARMS_MODE_ON) {
+        int waterTemp = readWaterTemp();
         if (waterTemp < waterTempCriticalLowLimit) { // waterTempCriticalLowAlarmAction 1-4
             runAlarm(waterTempCriticalLowAlarmAction1);
             runAlarm(waterTempCriticalLowAlarmAction2);
